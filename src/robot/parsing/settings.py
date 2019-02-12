@@ -17,10 +17,13 @@ from robot.utils import is_string, py2to3, PY3
 
 from .comments import Comment
 
+import os
 
 if PY3:
     unicode = str
 
+files = []
+files_with_parents = []
 
 @py2to3
 class Setting(object):
@@ -271,6 +274,41 @@ class _Import(Setting):
     def __init__(self, parent, name, args=None, alias=None, comment=None):
         self.parent = parent
         self.name = name
+        if parent is not None and name is not None:
+            splitted_directory = parent.directory.split("/")
+            splitted_name = name.split("/")
+
+            while '..' in splitted_name:
+                splitted_directory.pop(-1)
+                splitted_name.pop(0)
+            while '.' in splitted_name:
+                splitted_name.pop(0)
+            joined_directory = '/'.join(splitted_directory)
+            joined_name = '/'.join(splitted_name)
+            file = joined_name
+
+            if isinstance(self, Resource):
+                if 'tests' not in joined_name:
+                    file = os.path.join(joined_directory, joined_name)
+            elif isinstance(self, Library):
+                if 'lib.' in file:
+                    if '.py' not in file:
+                        file = file.replace('.', '/')
+                        file = file + ".py"
+            if file not in files:
+                files.append(file)
+
+            splitted_parent = parent.source.split("/")
+            joined_parent = '/'.join(splitted_parent)
+            if joined_parent not in files:
+                # if 'conversation_search' not in joined_parent:
+                if '.robot' in joined_parent:
+                    files.append(joined_parent)
+
+            join_paremts_files = file + ' ' + joined_parent
+            if join_paremts_files not in files_with_parents:
+                files_with_parents.append(join_paremts_files)
+
         self.args = args or []
         self.alias = alias
         self._set_comment(comment)
