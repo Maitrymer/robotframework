@@ -31,6 +31,10 @@ that can be used programmatically. Other code is for internal usage.
 """
 
 import sys
+import os
+import types
+import subprocess
+from robot.parsing.settings import X
 
 # Allows running as a script. __name__ check needed with multiprocessing:
 # https://github.com/robotframework/robotframework/issues/1137
@@ -43,7 +47,6 @@ from robot.output import LOGGER, pyloggingconf
 from robot.reporting import ResultWriter
 from robot.running import TestSuiteBuilder
 from robot.utils import Application, unic
-
 
 USAGE = """Robot Framework -- A generic test automation framework
 
@@ -422,15 +425,32 @@ $ export ROBOT_OPTIONS="--critical regression --suitestatlevel 2"
 $ export ROBOT_SYSLOG_FILE=/tmp/syslog.txt
 $ robot tests.robot
 """
+imports_names = []
 
+def imports():
+    print ("IMPORTS")
+    for name, val in globals().items():
+        if isinstance(val, types.ModuleType):
+            if(name not in imports_names):
+                imports_names.append(name)
+
+            # yield val.__name__
+        # if isinstance(val, types.FileType):
+        #     print name
+        #     # yield val.__name__
+    # x = globals()
+    # print (x)
 
 class RobotFramework(Application):
+
+
 
     def __init__(self):
         Application.__init__(self, USAGE, arg_limits=(1,),
                              env_options='ROBOT_OPTIONS', logger=LOGGER)
 
     def main(self, datasources, **options):
+        print ("LEMOSSSSSSSSSSSS")
         settings = RobotSettings(options)
         LOGGER.register_console_logger(**settings.console_output_config)
         LOGGER.info('Settings:\n%s' % unic(settings))
@@ -449,6 +469,17 @@ class RobotFramework(Application):
                 writer = ResultWriter(settings.output if settings.log
                                       else result)
                 writer.write_results(settings.get_rebot_settings())
+        imports()
+        file_name = str(os.getpid()) + ".json"
+        with open(file_name, 'w') as f:
+            for item in X:
+                f.write("%s\n" % item)
+            for item in imports_names:
+                f.write("%s\n" % item)
+        # subprocess.run(["gsutil cp", file_name, "gs://codeowners"])
+        os.system("gsutil cp " + file_name + " gs://codeowners")
+        print ("LEMOSSSSSSSSSSSS")
+
         return result.return_code
 
     def validate(self, options, arguments):
@@ -457,7 +488,6 @@ class RobotFramework(Application):
     def _filter_options_without_value(self, options):
         return dict((name, value) for name, value in options.items()
                     if value not in (None, []))
-
 
 def run_cli(arguments, exit=True):
     """Command line execution entry point for running tests.
@@ -548,3 +578,4 @@ def run(*tests, **options):
 
 if __name__ == '__main__':
     run_cli(sys.argv[1:])
+

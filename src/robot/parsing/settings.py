@@ -17,10 +17,12 @@ from robot.utils import is_string, py2to3, PY3
 
 from .comments import Comment
 
+import os
 
 if PY3:
     unicode = str
 
+X = []
 
 @py2to3
 class Setting(object):
@@ -271,6 +273,40 @@ class _Import(Setting):
     def __init__(self, parent, name, args=None, alias=None, comment=None):
         self.parent = parent
         self.name = name
+        # print os.path.join(parent.directory, name)
+        # print ("Rodo!")
+        if parent is not None and name is not None:
+            splitted_directory = parent.directory.split("/")
+            splitted_name = name.split("/")
+            while '..' in splitted_name:
+                splitted_directory.pop(-1)
+                splitted_name.pop(0)
+            while '.' in splitted_name:
+                splitted_name.pop(0)
+            t = '/'.join(splitted_directory)
+            x = '/'.join(splitted_name)
+            j = x
+            if isinstance(self, Resource):
+                if 'tests' not in x:
+                    j = os.path.join(t, x)
+            elif isinstance(self, Library):
+                if 'lib.' in j:
+                    if '.py' not in j:
+                        j = j.replace('.', '/')
+                        j = j + ".py"
+            if(j not in X):
+                X.append(j)
+
+            splitted_parent = parent.source.split("/")
+            splited = '/'.join(splitted_parent)
+            if(splited not in X):
+                if 'conversation_search' not in splited:
+                    if '.robot' in splited:
+                        X.append(splited)
+
+        # print os.path.join(parent.directory, name)
+        # print parent.directory
+        # print name
         self.args = args or []
         self.alias = alias
         self._set_comment(comment)
