@@ -17,10 +17,13 @@ from robot.utils import is_string, py2to3, PY3
 
 from .comments import Comment
 
+import os
 
 if PY3:
     unicode = str
 
+files_with_parents = []
+FILE_SEPARATOR = os.sep
 
 @py2to3
 class Setting(object):
@@ -271,6 +274,35 @@ class _Import(Setting):
     def __init__(self, parent, name, args=None, alias=None, comment=None):
         self.parent = parent
         self.name = name
+        if parent is not None and name is not None:
+            splitted_directory = parent.directory.split(FILE_SEPARATOR)
+            splitted_name = name.split(FILE_SEPARATOR)
+
+            while '..' in splitted_name:
+                splitted_directory.pop(-1)
+                splitted_name.pop(0)
+            while '.' in splitted_name:
+                splitted_name.pop(0)
+            joined_directory = FILE_SEPARATOR.join(splitted_directory)
+            joined_name = FILE_SEPARATOR.join(splitted_name)
+            file = joined_name
+
+            if isinstance(self, Resource):
+                if 'tests' not in joined_name:
+                    file = os.path.join(joined_directory, joined_name)
+            elif isinstance(self, Library):
+                if 'lib.' in file:
+                    if '.py' not in file:
+                        file = file.replace('.', FILE_SEPARATOR)
+                        file = file + ".py"
+
+            splitted_parent = parent.source.split(FILE_SEPARATOR)
+            joined_parent = FILE_SEPARATOR.join(splitted_parent)
+
+            join_paremts_files = file + ' ' + joined_parent
+            if join_paremts_files not in files_with_parents:
+                files_with_parents.append(join_paremts_files)
+
         self.args = args or []
         self.alias = alias
         self._set_comment(comment)
