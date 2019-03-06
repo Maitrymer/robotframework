@@ -34,7 +34,6 @@ import sys
 import os
 import types
 import subprocess
-from robot.parsing.settings import files
 from robot.parsing.settings import files_with_parents
 
 # Allows running as a script. __name__ check needed with multiprocessing:
@@ -428,15 +427,27 @@ $ robot tests.robot
 """
 imports_names = []
 
+
 def imports():
     for name, val in globals().items():
         if isinstance(val, types.ModuleType):
             if(name not in imports_names):
                 imports_names.append(name)
 
+
+def get_used_regression_files():
+    imports()
+    file_name = str(os.getpid()) + ".json"
+
+    with open(file_name, 'w') as f:
+        for item in files_with_parents:
+            f.write("%s\n" % item)
+        for item in imports_names:
+            f.write("%s\n" % item)
+    os.system("gsutil cp " + file_name + " gs://codeowners/")
+
+
 class RobotFramework(Application):
-
-
 
     def __init__(self):
         Application.__init__(self, USAGE, arg_limits=(1,),
@@ -462,22 +473,7 @@ class RobotFramework(Application):
                                       else result)
                 writer.write_results(settings.get_rebot_settings())
 
-        imports()
-        file_name = str(os.getpid()) + ".json"
-
-        with open(file_name, 'w') as f:
-            for item in files:
-                f.write("%s\n" % item)
-            for item in imports_names:
-                f.write("%s\n" % item)
-        os.system("gsutil cp " + file_name + " gs://codeowners/used-files/")
-
-        with open(file_name, 'w') as f:
-            for item in files_with_parents:
-                f.write("%s\n" % item)
-            for item in imports_names:
-                f.write("%s\n" % item)
-        os.system("gsutil cp " + file_name + " gs://codeowners/files-parents/")
+        get_used_regression_files()
 
         return result.return_code
 
@@ -487,6 +483,7 @@ class RobotFramework(Application):
     def _filter_options_without_value(self, options):
         return dict((name, value) for name, value in options.items()
                     if value not in (None, []))
+
 
 def run_cli(arguments, exit=True):
     """Command line execution entry point for running tests.

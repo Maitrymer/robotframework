@@ -22,8 +22,8 @@ import os
 if PY3:
     unicode = str
 
-files = []
 files_with_parents = []
+FILE_SEPARATOR = os.sep
 
 @py2to3
 class Setting(object):
@@ -274,17 +274,21 @@ class _Import(Setting):
     def __init__(self, parent, name, args=None, alias=None, comment=None):
         self.parent = parent
         self.name = name
+        self.args = args or []
+        self.alias = alias
+        self._set_comment(comment)
+
         if parent is not None and name is not None:
-            splitted_directory = parent.directory.split("/")
-            splitted_name = name.split("/")
+            splitted_directory = parent.directory.split(FILE_SEPARATOR)
+            splitted_name = name.split(FILE_SEPARATOR)
 
             while '..' in splitted_name:
                 splitted_directory.pop(-1)
                 splitted_name.pop(0)
             while '.' in splitted_name:
                 splitted_name.pop(0)
-            joined_directory = '/'.join(splitted_directory)
-            joined_name = '/'.join(splitted_name)
+            joined_directory = FILE_SEPARATOR.join(splitted_directory)
+            joined_name = FILE_SEPARATOR.join(splitted_name)
             file = joined_name
 
             if isinstance(self, Resource):
@@ -293,25 +297,15 @@ class _Import(Setting):
             elif isinstance(self, Library):
                 if 'lib.' in file:
                     if '.py' not in file:
-                        file = file.replace('.', '/')
+                        file = file.replace('.', FILE_SEPARATOR)
                         file = file + ".py"
-            if file not in files:
-                files.append(file)
 
-            splitted_parent = parent.source.split("/")
-            joined_parent = '/'.join(splitted_parent)
-            if joined_parent not in files:
-                # if 'conversation_search' not in joined_parent:
-                if '.robot' in joined_parent:
-                    files.append(joined_parent)
+            splitted_parent = parent.source.split(FILE_SEPARATOR)
+            joined_parent = FILE_SEPARATOR.join(splitted_parent)
 
             join_paremts_files = file + ' ' + joined_parent
             if join_paremts_files not in files_with_parents:
                 files_with_parents.append(join_paremts_files)
-
-        self.args = args or []
-        self.alias = alias
-        self._set_comment(comment)
 
     def reset(self):
         pass
