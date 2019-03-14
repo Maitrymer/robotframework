@@ -25,6 +25,14 @@ if PY3:
 files_with_parents = []
 FILE_SEPARATOR = os.sep
 
+
+def pop_array_until_remove_element(element, array_of_elements, position=0):
+    if element in array_of_elements:
+        while element in array_of_elements:
+            array_of_elements.pop(position)
+    return array_of_elements
+
+
 @py2to3
 class Setting(object):
 
@@ -274,10 +282,6 @@ class _Import(Setting):
     def __init__(self, parent, name, args=None, alias=None, comment=None):
         self.parent = parent
         self.name = name
-        self.args = args or []
-        self.alias = alias
-        self._set_comment(comment)
-
         if parent is not None and name is not None:
             splitted_directory = parent.directory.split(FILE_SEPARATOR)
             splitted_name = name.split(FILE_SEPARATOR)
@@ -287,6 +291,10 @@ class _Import(Setting):
                 splitted_name.pop(0)
             while '.' in splitted_name:
                 splitted_name.pop(0)
+
+            splitted_name = pop_array_until_remove_element(os.environ.get('JOB_BASE_NAME'), splitted_name, 0)
+            splitted_directory = pop_array_until_remove_element(os.environ.get('JOB_BASE_NAME'), splitted_directory, 0)
+
             joined_directory = FILE_SEPARATOR.join(splitted_directory)
             joined_name = FILE_SEPARATOR.join(splitted_name)
             file = joined_name
@@ -301,11 +309,17 @@ class _Import(Setting):
                         file = file + ".py"
 
             splitted_parent = parent.source.split(FILE_SEPARATOR)
+            splitted_parent = pop_array_until_remove_element(os.environ.get('JOB_BASE_NAME'), splitted_parent, 0)
             joined_parent = FILE_SEPARATOR.join(splitted_parent)
 
-            join_paremts_files = file + ' ' + joined_parent
-            if join_paremts_files not in files_with_parents:
-                files_with_parents.append(join_paremts_files)
+            join_parents_files = {file: joined_parent}
+            print join_parents_files
+            if join_parents_files not in files_with_parents:
+                files_with_parents.append(join_parents_files)
+
+        self.args = args or []
+        self.alias = alias
+        self._set_comment(comment)
 
     def reset(self):
         pass

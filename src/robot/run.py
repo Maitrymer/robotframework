@@ -35,6 +35,7 @@ import os
 import types
 import subprocess
 from robot.parsing.settings import files_with_parents
+import json
 
 # Allows running as a script. __name__ check needed with multiprocessing:
 # https://github.com/robotframework/robotframework/issues/1137
@@ -425,25 +426,14 @@ $ export ROBOT_OPTIONS="--critical regression --suitestatlevel 2"
 $ export ROBOT_SYSLOG_FILE=/tmp/syslog.txt
 $ robot tests.robot
 """
-imports_names = []
-
-
-def imports():
-    for name, val in globals().items():
-        if isinstance(val, types.ModuleType):
-            if(name not in imports_names):
-                imports_names.append(name)
 
 
 def get_used_regression_files():
-    imports()
-    file_name = str(os.getpid()) + ".json"
 
+    file_name = str(os.getpid()) + ".json"
     with open(file_name, 'w') as f:
-        for item in files_with_parents:
-            f.write("%s\n" % item)
-        for item in imports_names:
-            f.write("%s\n" % item)
+        json.dump(files_with_parents, f)
+
     os.system("gsutil cp " + file_name + " gs://codeowners/")
 
 
